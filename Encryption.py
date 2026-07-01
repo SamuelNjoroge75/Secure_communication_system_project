@@ -13,7 +13,6 @@ def prepare_key(shared_secret: int) -> bytes:
 
 
 def encrypt_message(aes_key: bytes, plaintext: str) -> tuple:
-
     nonce = os.urandom(12)
     aesgcm = AESGCM(aes_key)
     ciphertext = aesgcm.encrypt(nonce, plaintext.encode(), None)
@@ -21,7 +20,6 @@ def encrypt_message(aes_key: bytes, plaintext: str) -> tuple:
 
 
 def decrypt_message(aes_key: bytes, nonce: bytes, ciphertext: bytes) -> str:
-
     aesgcm = AESGCM(aes_key)
     try:
         plaintext_bytes = aesgcm.decrypt(nonce, ciphertext, None)
@@ -31,7 +29,6 @@ def decrypt_message(aes_key: bytes, nonce: bytes, ciphertext: bytes) -> str:
 
 
 def demonstrate_tampering(aes_key: bytes, nonce: bytes, ciphertext: bytes):
-
     tampered = bytearray(ciphertext)
     tampered[0] ^= 0xFF
     result = decrypt_message(aes_key, nonce, bytes(tampered))
