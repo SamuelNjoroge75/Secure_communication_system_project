@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Communication System</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090f;
+  --panel:#0f1019;
+  --card:#141520;
+  --card2:#191b2a;
+  --border:#1e2138;
+  --border2:#252840;
+  --text:#e8eaf6;
+  --muted:#6b7280;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+  --blue:#4f8ef7;   --blue-bg:#0a1628;   --blue-bd:#1a3050;
+  --cyan:#22d3ee;   --cyan-bg:#041419;   --cyan-bd:#0e3840;
+  --green:#22c55e;  --green-bg:#061408;  --green-bd:#0d3a15;
+  --red:#f43f5e;    --red-bg:#180610;    --red-bd:#3d0f1e;
+  --yellow:#fbbf24; --yellow-bg:#160f01; --yellow-bd:#3d2c05;
+  --purple:#a78bfa; --purple-bg:#100a20; --purple-bd:#2a1a50;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;line-height:1.6}
+
+/* HEADER */
+.hdr{background:var(--panel);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100}
+.hdr-lock{font-size:18px}
+.hdr-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.01em}
+.hdr-sep{color:var(--border2);font-size:10px}
+.hdr-sub{font-size:11px;color:var(--muted)}
+.hdr-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid var(--green-bd);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--green);letter-spacing:0.05em}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* LAYOUT */
+.wrap{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+
+/* KEY EXCHANGE BANNER */
+.ke-banner{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:28px}
+.ke-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.ke-badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--blue);letter-spacing:0.07em}
+.ke-title{font-size:14px;font-weight:700;color:var(--text)}
+.ke-subtitle{font-size:11px;color:var(--muted);margin-left:auto}
+.ke-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ke-cell{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.ke-cell-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px}
+.ke-cell-val{font-family:var(--mono);font-size:12px;color:var(--text);word-break:break-all;line-height:1.4}
+.ke-cell-val.pub{color:var(--blue)}
+.ke-cell-val.priv{color:var(--red)}
+.ke-secret{background:var(--yellow-bg);border:1px solid var(--yellow-bd);border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:12px;margin-top:10px}
+.ke-secret-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--yellow)}
+.ke-secret-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--yellow);flex:1}
+.ke-secret-match{font-size:11px;color:var(--green);margin-left:auto}
+
+/* MAIN SPLIT */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.split-col{display:flex;flex-direction:column;gap:14px}
+
+/* COLUMN HEADERS */
+.col-header{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:1px solid}
+.col-header.sender{background:var(--cyan-bg);border-color:var(--cyan-bd)}
+.col-header.receiver{background:var(--purple-bg);border-color:var(--purple-bd)}
+.col-dot{width:8px;height:8px;border-radius:50%}
+.col-name{font-size:13px;font-weight:700}
+.col-role{font-size:10px;margin-left:auto;font-weight:600;letter-spacing:0.05em;opacity:.7}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px}
+.card:last-child{margin-bottom:0}
+.card-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--card2)}
+.card-hdr-icon{font-size:13px}
+.card-hdr-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted)}
+.card-body{padding:14px}
+
+/* FIELDS */
+.fields{display:flex;flex-direction:column;gap:7px}
+.field{display:flex;gap:8px;align-items:flex-start}
+.field-k{font-size:10px;font-family:var(--mono);color:var(--muted);min-width:76px;padding-top:6px;flex-shrink:0}
+.field-v{font-family:var(--mono);font-size:11px;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:4px 9px;color:var(--text);flex:1;word-break:break-all;line-height:1.5;min-height:28px}
+.field-v.c-blue{color:var(--blue);border-color:var(--blue-bd);background:var(--blue-bg)}
+.field-v.c-cyan{color:var(--cyan);border-color:var(--cyan-bd);background:var(--cyan-bg)}
+.field-v.c-green{color:var(--green);border-color:var(--green-bd);background:var(--green-bg)}
+.field-v.c-red{color:var(--red);border-color:var(--red-bd);background:var(--red-bg)}
+.field-v.c-yellow{color:var(--yellow);border-color:var(--yellow-bd);background:var(--yellow-bg)}
+.field-v.c-purple{color:var(--purple);border-color:var(--purple-bd);background:var(--purple-bg)}
+.field-v.c-muted{color:var(--muted);font-style:italic}
+
+/* INPUT */
+.input-wrap{display:flex;gap:8px;margin-bottom:12px}
+input[type=text]{flex:1;background:var(--panel);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:var(--sans);outline:none;transition:border-color .15s}
+input[type=text]:focus{border-color:var(--cyan)}
+input[type=text]::placeholder{color:var(--muted)}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--sans);transition:opacity .15s,transform .1s;letter-spacing:0.02em;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn:active{transform:scale(.97)}
+.btn-cyan{background:var(--cyan);color:#000}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn-yellow{background:var(--yellow);color:#000}
+.btn-purple{background:var(--purple);color:#000}
+.btn-ghost{background:var(--card2);border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{color:var(--text)}
+
+/* RESULT BANNERS — no display:none trick, use visibility via class only */
+.result{
+  border-radius:7px;padding:12px 14px;
+  font-size:12px;font-family:var(--mono);font-weight:600;
+  line-height:1.65;white-space:pre-wrap;margin-top:10px;
+  border:1px solid transparent;
+  display:none; /* hidden by default */
+}
+.result.show-ok{
+  display:block;
+  background:var(--green-bg);border-color:var(--green-bd);color:var(--green);
+  animation:fadeIn .3s ease;
+}
+.result.show-err{
+  display:block;
+  background:var(--red-bg);border-color:var(--red-bd);color:var(--red);
+  animation:fadeIn .3s ease;
+}
+.result.show-warn{
+  display:block;
+  background:var(--yellow-bg);border-color:var(--yellow-bd);color:var(--yellow);
+  animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* PACKET TRANSIT */
+.transit{background:var(--cyan-bg);border:1px solid var(--cyan-bd);border-radius:8px;padding:10px 14px;margin:8px 0;display:none}
+.transit.show{display:block}
+.transit-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--cyan);margin-bottom:6px}
+.transit-val{font-family:var(--mono);font-size:10px;color:var(--cyan);word-break:break-all;line-height:1.6}
+
+/* SECTION LABEL */
+.section-label{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.section-num{width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;font-family:var(--mono);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-name{font-size:12px;font-weight:700;letter-spacing:0.01em}
+.section-tech{font-size:10px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
+
+/* NEVER TAG */
+.tag-never{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.05em;background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red);margin-left:6px}
+
+/* STEP HINT */
+.hint{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6}
+
+@media(max-width:800px){.split{grid-template-columns:1fr}.ke-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.ke-grid{grid-template-columns:1fr}.hdr{padding:0 14px}.wrap{padding:16px 12px 50px}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <span class="hdr-lock">🔐</span>
+  <span class="hdr-title">Secure Communication System</span>
+  <span class="hdr-sep">·</span>
+  <span class="hdr-sub">Cryptography Project — Strathmore University</span>
+  <div class="hdr-pill"><span class="pulse"></span>LIVE DEMO</div>
+</header>
+
+<div class="wrap">
+
+  <!-- KEY EXCHANGE -->
+  <div class="ke-banner">
+    <div class="ke-top">
+      <div class="ke-badge">01 · KEY EXCHANGE</div>
+      <span class="ke-title">Diffie-Hellman — Person 1</span>
+      <span class="ke-subtitle">Runs automatically on startup · Shared secret feeds both layers below</span>
+    </div>
+    <div class="ke-grid">
+      <div class="ke-cell">
+        <div class="ke-cell-label">Public — Prime (p)</div>
+        <div class="ke-cell-val pub" id="ke-p">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Public — Generator (g)</div>
+        <div class="ke-cell-val pub" id="ke-g">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Alice public key (A)</div>
+        <div class="ke-cell-val pub" id="ke-apub">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Bob public key (B)</div>
+        <div class="ke-cell-val pub" id="ke-bpub">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Alice private (a) <span class="tag-never">NEVER SENT</span></div>
+        <div class="ke-cell-val priv" id="ke-apriv">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Alice computes</div>
+        <div class="ke-cell-val" id="ke-acomp">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Bob private (b) <span class="tag-never">NEVER SENT</span></div>
+        <div class="ke-cell-val priv" id="ke-bpriv">—</div>
+      </div>
+      <div class="ke-cell">
+        <div class="ke-cell-label">Bob computes</div>
+        <div class="ke-cell-val" id="ke-bcomp">—</div>
+      </div>
+    </div>
+    <div class="ke-secret">
+      <span class="ke-secret-label">Shared Secret</span>
+      <span class="ke-secret-val" id="ke-secret">—</span>
+      <span class="ke-secret-match" id="ke-match">—</span>
+    </div>
+  </div>
+
+  <!-- SPLIT -->
+  <div class="split">
+
+    <!-- ══════ SENDER ══════ -->
+    <div class="split-col">
+      <div class="col-header sender">
+        <div class="col-dot" style="background:var(--cyan)"></div>
+        <span class="col-name" style="color:var(--cyan)">Sender</span>
+        <span class="col-role" style="color:var(--cyan)">ALICE</span>
+      </div>
+
+      <!-- Sign -->
+      <div>
+        <div class="section-label">
+          <div class="section-num" style="background:var(--card2);border:1px solid var(--border);color:var(--text)">02</div>
+          <span class="section-name">Authentication</span>
+          <span class="section-tech">HMAC-SHA256 · Person 2</span>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-hdr-icon">✍</span>
+            <span class="card-hdr-title">Step 1 — Sign message</span>
+          </div>
+          <div class="card-body">
+            <p class="hint">Type a message and click Sign. An HMAC tag and a unique nonce will be generated and attached to the packet.</p>
+            <div class="input-wrap">
+              <input type="text" id="auth-input" placeholder="e.g. Transfer 500 KES to Alice" />
+              <button class="btn btn-cyan" onclick="doSign()">Sign ↗</button>
+            </div>
+            <div class="fields" id="sign-fields" style="display:none">
+              <div class="field"><span class="field-k">message</span><span class="field-v c-cyan" id="s-msg">—</span></div>
+              <div class="field"><span class="field-k">nonce</span><span class="field-v" id="s-nonce">—</span></div>
+              <div class="field"><span class="field-k">hmac tag</span><span class="field-v c-cyan" id="s-tag">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Encrypt -->
+      <div>
+        <div class="section-label">
+          <div class="section-num" style="background:var(--purple-bg);border:1px solid var(--purple-bd);color:var(--purple)">03</div>
+          <span class="section-name" style="color:var(--purple)">Encryption</span>
+          <span class="section-tech">AES-256-GCM · Person 3</span>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-hdr-icon">🔒</span>
+            <span class="card-hdr-title">Step 2 — Encrypt and transmit</span>
+          </div>
+          <div class="card-body">
+            <p class="hint">Encrypts the signed message using AES-256-GCM. The ciphertext is then transmitted to the receiver.</p>
+            <button class="btn btn-purple" onclick="doEncrypt()" style="margin-bottom:12px">Encrypt signed message ↗</button>
+            <div class="fields" id="enc-fields" style="display:none">
+              <div class="field"><span class="field-k">aes key</span><span class="field-v c-yellow" id="e-key">—</span></div>
+              <div class="field"><span class="field-k">nonce</span><span class="field-v" id="e-nonce">—</span></div>
+              <div class="field"><span class="field-k">ciphertext</span><span class="field-v c-purple" id="e-ct">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Packet in transit -->
+      <div class="transit" id="transit-box">
+        <div class="transit-label">📡 Packet transmitted over channel — visible to attacker</div>
+        <div class="transit-val" id="transit-val">—</div>
+      </div>
+    </div>
+
+    <!-- ══════ RECEIVER ══════ -->
+    <div class="split-col">
+      <div class="col-header receiver">
+        <div class="col-dot" style="background:var(--purple)"></div>
+        <span class="col-name" style="color:var(--purple)">Receiver</span>
+        <span class="col-role" style="color:var(--purple)">BOB</span>
+      </div>
+
+      <!-- Verify -->
+      <div>
+        <div class="section-label">
+          <div class="section-num" style="background:var(--card2);border:1px solid var(--border);color:var(--text)">02</div>
+          <span class="section-name">Authentication</span>
+          <span class="section-tech">HMAC-SHA256 · Person 2</span>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr" style="border-left:3px solid var(--green)">
+            <span class="card-hdr-icon">✓</span>
+            <span class="card-hdr-title">Verify original packet</span>
+            <span style="margin-left:auto;font-size:9px;color:var(--muted)">checks HMAC tag + nonce</span>
+          </div>
+          <div class="card-body">
+            <p class="hint">Receiver recomputes the HMAC tag using the shared key. If it matches, the message is authentic and untampered.</p>
+            <button class="btn btn-green" onclick="doVerify()">Verify packet ↗</button>
+            <div class="result" id="verify-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr" style="border-left:3px solid var(--red)">
+            <span class="card-hdr-icon">✕</span>
+            <span class="card-hdr-title">Simulate message tampering</span>
+            <span style="margin-left:auto;font-size:9px;color:var(--muted)">attack scenario</span>
+          </div>
+          <div class="card-body">
+            <p class="hint">Attacker intercepts and changes the message content. The HMAC tag no longer matches — packet is rejected.</p>
+            <div class="fields" style="margin-bottom:10px">
+              <div class="field">
+                <span class="field-k">original</span>
+                <span class="field-v c-muted" id="tamper-original">sign a message first</span>
+              </div>
+              <div class="field">
+                <span class="field-k">changed to</span>
+                <span class="field-v c-red">Transfer 9999 KES to Attacker</span>
+              </div>
+            </div>
+            <button class="btn btn-red" onclick="doTamper()">Simulate tampering ↗</button>
+            <div class="result" id="tamper-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr" style="border-left:3px solid var(--yellow)">
+            <span class="card-hdr-icon">↺</span>
+            <span class="card-hdr-title">Simulate replay attack</span>
+            <span style="margin-left:auto;font-size:9px;color:var(--muted)">attack scenario</span>
+          </div>
+          <div class="card-body">
+            <p class="hint">Attacker resends the original valid packet a second time. The nonce is already recorded — rejected immediately.</p>
+            <button class="btn btn-yellow" onclick="doReplay()">Simulate replay ↗</button>
+            <div class="result" id="replay-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decrypt -->
+      <div>
+        <div class="section-label">
+          <div class="section-num" style="background:var(--purple-bg);border:1px solid var(--purple-bd);color:var(--purple)">03</div>
+          <span class="section-name" style="color:var(--purple)">Encryption</span>
+          <span class="section-tech">AES-256-GCM · Person 3</span>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-hdr-icon">🔓</span>
+            <span class="card-hdr-title">Decrypt and verify integrity</span>
+          </div>
+          <div class="card-body">
+            <p class="hint">Decrypt using the shared AES key. GCM automatically verifies the ciphertext was not tampered with.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+              <button class="btn btn-purple" onclick="doDecrypt()">Decrypt ↗</button>
+              <button class="btn btn-red" onclick="doCipherTamper()">✕ Tamper ciphertext ↗</button>
+            </div>
+            <div class="result" id="dec-result"></div>
+          </div>
+        </div>
+
+        <div class="card" id="recovered-card" style="display:none">
+          <div class="card-hdr">
+            <span class="card-hdr-icon">✅</span>
+            <span class="card-hdr-title">Recovered message</span>
+          </div>
+          <div class="card-body">
+            <div class="fields">
+              <div class="field"><span class="field-k">plaintext</span><span class="field-v c-green" id="r-msg">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- end split -->
+</div>
+
+<script>
+let encPacket = null;
+
+// Load key exchange on startup
+window.addEventListener('load', async () => {
+  try {
+    const d = await (await fetch('/api/keyexchange')).json();
+    set('ke-p',      d.p);
+    set('ke-g',      d.g);
+    set('ke-apub',   d.alice_public);
+    set('ke-bpub',   d.bob_public);
+    set('ke-apriv',  d.alice_private);
+    set('ke-acomp',  `B^a mod p = ${d.alice_shared}`);
+    set('ke-bpriv',  d.bob_private);
+    set('ke-bcomp',  `A^b mod p = ${d.bob_shared}`);
+    set('ke-secret', d.shared_secret);
+    const m = document.getElementById('ke-match');
+    m.textContent = d.match
+      ? `✓ Alice computed ${d.shared_secret}  =  Bob computed ${d.shared_secret}  — secret agreed`
+      : '✗ Mismatch — error';
+    m.style.color = d.match ? 'var(--green)' : 'var(--red)';
+  } catch(e) { console.error('Key exchange load error:', e); }
+});
+
+async function doSign() {
+  const msg = document.getElementById('auth-input').value.trim();
+  if (!msg) { alert('Enter a message first.'); return; }
+  const d = await post('/api/sign', { message: msg });
+  if (d.error) { alert(d.error); return; }
+  set('s-msg',   d.message);
+  set('s-nonce', d.nonce);
+  set('s-tag',   d.hmac);
+  set('tamper-original', d.message);
+  document.getElementById('sign-fields').style.display = 'flex';
+  document.getElementById('sign-fields').style.flexDirection = 'column';
+  document.getElementById('sign-fields').style.gap = '7px';
+  hide('transit-box');
+  hide('enc-fields');
+  hide('recovered-card');
+  encPacket = null;
+  clearResult('verify-result');
+  clearResult('tamper-result');
+  clearResult('replay-result');
+  clearResult('dec-result');
+}
+
+async function doEncrypt() {
+  const msg = document.getElementById('s-msg').textContent;
+  if (msg === '—' || !msg) { alert('Sign a message first.'); return; }
+  const d = await post('/api/encrypt', { message: msg });
+  if (d.error) { alert(d.error); return; }
+  encPacket = d;
+  set('e-key',   d.aes_key);
+  set('e-nonce', d.nonce);
+  set('e-ct',    d.ciphertext);
+  const ef = document.getElementById('enc-fields');
+  ef.style.display = 'flex';
+  ef.style.flexDirection = 'column';
+  ef.style.gap = '7px';
+  document.getElementById('transit-val').textContent =
+    `nonce:      ${d.nonce}\nciphertext: ${d.ciphertext}`;
+  document.getElementById('transit-box').classList.add('show');
+  document.getElementById('transit-box').style.display = 'block';
+}
+
+async function doVerify() {
+  const d = await post('/api/verify', {});
+  if (d.error) { showResult('verify-result', '⚠ ' + d.error, 'warn'); return; }
+  showResult('verify-result',
+    d.success
+      ? '✓ AUTHENTIC\n\nHMAC tag matched successfully.\nNonce recorded — replay is now blocked.'
+      : '✗ REJECTED\n\n' + d.result,
+    d.success ? 'ok' : 'err');
+}
+
+async function doTamper() {
+  const d = await post('/api/tamper', {});
+  if (d.error) { showResult('tamper-result', '⚠ ' + d.error, 'warn'); return; }
+  showResult('tamper-result',
+    d.success
+      ? '✓ AUTHENTIC (unexpected)'
+      : `✗ REJECTED — TAMPERED MESSAGE DETECTED\n\nAttacker changed:\n"${document.getElementById('tamper-original').textContent}"\n→ "${d.tampered_message}"\n\nHMAC tag no longer matches. Packet discarded.`,
+    d.success ? 'ok' : 'err');
+}
+
+async function doReplay() {
+  const d = await post('/api/replay', {});
+  if (d.error) { showResult('replay-result', '⚠ ' + d.error, 'warn'); return; }
+  showResult('replay-result',
+    d.success
+      ? '✓ AUTHENTIC (unexpected — verify was not clicked first)'
+      : '✗ REJECTED — REPLAY ATTACK DETECTED\n\nAttacker resent the original signed packet.\nNonce already exists in seen_nonces set.\nPacket discarded immediately.',
+    d.success ? 'ok' : 'err');
+}
+
+async function doDecrypt() {
+  if (!encPacket) { alert('Encrypt a message first.'); return; }
+  const d = await post('/api/decrypt', {});
+  if (d.error) { showResult('dec-result', '⚠ ' + d.error, 'warn'); return; }
+  showResult('dec-result',
+    d.success
+      ? '✓ DECRYPTED SUCCESSFULLY\n\nGCM authentication tag verified.\nCiphertext was not tampered with.'
+      : '✗ DECRYPTION FAILED\n\n' + d.result,
+    d.success ? 'ok' : 'err');
+  if (d.success) {
+    set('r-msg', d.result);
+    document.getElementById('recovered-card').style.display = 'block';
+  }
+}
+
+async function doCipherTamper() {
+  if (!encPacket) { alert('Encrypt a message first.'); return; }
+  const d = await post('/api/encrypt_tamper', {});
+  showResult('dec-result',
+    '✗ DECRYPTION FAILED — CIPHERTEXT TAMPERING DETECTED\n\nAttacker flipped a byte in the ciphertext.\nAES-GCM authentication tag is invalid.\nDecryption aborted.',
+    'err');
+  hide('recovered-card');
+}
+
+async function post(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+function set(id, v)  { const e = document.getElementById(id); if (e) e.textContent = v; }
+function hide(id)    { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
+
+function showResult(id, msg, type) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.textContent = msg;
+  // Remove all show- classes first
+  e.className = 'result';
+  // Force reflow so animation re-triggers
+  void e.offsetWidth;
+  if (type === 'ok')   e.classList.add('show-ok');
+  if (type === 'err')  e.classList.add('show-err');
+  if (type === 'warn') e.classList.add('show-warn');
+}
+
+function clearResult(id) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.textContent = '';
+  e.className = 'result';
+}
+</script>
+</body>
+</html>
